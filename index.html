@@ -1,0 +1,989 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Phonics Sky Dash - 500分爆機版</title>
+    
+    <!-- 預先載入圖片 -->
+    <link rel="preload" as="image" href="https://res.cloudinary.com/docgkbrrg/image/upload/v1778839467/IMG_0869_yzwulq.png">
+    <link rel="preload" as="image" href="https://res.cloudinary.com/docgkbrrg/image/upload/v1778846211/IMG_0864_swajz3.png">
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;900&display=swap');
+        
+        :root {
+            --primary-blue: #0ea5e9;
+            --primary-shadow: #0369a1;
+            --bg-dots: #bae6fd;
+            --victory-gold: #f59e0b;
+            --victory-shadow: #b45309;
+        }
+
+        body {
+            font-family: 'Nunito', sans-serif;
+            margin: 0;
+            overflow: hidden;
+            background-color: #ffffff;
+            touch-action: none;
+            user-select: none;
+        }
+
+        #app-container {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        /* ==================== 
+           遊戲畫面樣式 
+           ==================== */
+        #game-view {
+            position: absolute; inset: 0; display: none; background-color: #87CEEB; z-index: 50;
+        }
+
+        .bg-clouds {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background-image: url('https://res.cloudinary.com/docgkbrrg/image/upload/v1778839467/IMG_0869_yzwulq.png');
+            background-repeat: no-repeat; background-size: cover; background-position: center bottom; z-index: 1;
+        }
+
+        .player {
+            position: absolute; width: 120px; height: 120px; z-index: 20;
+            top: 0; left: 8%; 
+            transform-origin: center center;
+            pointer-events: none; 
+            will-change: transform; 
+        }
+        
+        .player-sprite {
+            width: 100%; height: 100%; animation: idleFloat 2.5s ease-in-out infinite alternate;
+            filter: drop-shadow(0px 8px 10px rgba(0,0,0,0.25));
+        }
+        
+        .player-img { width: 100%; height: 100%; object-fit: contain; }
+
+        @keyframes idleFloat {
+            0% { transform: translateY(-5px); } 100% { transform: translateY(5px); }
+        }
+
+        .bubble {
+            position: absolute; display: flex; align-items: center; justify-content: center;
+            padding: 8px 20px; border-radius: 30px; color: #1e293b; font-weight: 900;
+            font-size: 1.4rem; letter-spacing: 1px; z-index: 15;
+            box-shadow: 0 6px 0px rgba(0,0,0,0.1), inset 0 3px 0px rgba(255,255,255,0.4);
+            animation: breathe 2s ease-in-out infinite alternate; white-space: nowrap; border: 3px solid white; 
+            cursor: pointer; pointer-events: auto; 
+            will-change: left; 
+        }
+        
+        .bubble:active, .bubble.reading {
+            animation: none !important; 
+            transform: scale(1.15) !important; border-color: #fbbf24 !important;
+            box-shadow: 0 0 20px rgba(251, 191, 36, 0.8), inset 0 3px 0px rgba(255,255,255,0.4) !important; z-index: 18;
+        }
+
+        .bubble.popped {
+            animation: none !important;
+            transform: scale(0) !important;
+            transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        @keyframes breathe { 0% { transform: scale(1); } 100% { transform: scale(1.05); } }
+
+        .particle {
+            position: absolute; border-radius: 50%; pointer-events: none; z-index: 16;
+            animation: explode 0.6s cubic-bezier(0.1, 0.8, 0.3, 1) forwards;
+            top: 0; left: 0; will-change: transform;
+        }
+
+        @keyframes explode {
+            0% { transform: translate(var(--startX), var(--startY)) scale(1); opacity: 1; }
+            100% { transform: translate(var(--tx), var(--ty)) scale(0); opacity: 0; }
+        }
+
+        .float-text, .combo-text { position: absolute; top: 0; left: 0; pointer-events: none; z-index: 50; will-change: transform; }
+        .float-text {
+            color: #fbbf24; font-weight: 900; font-size: 2rem;
+            text-shadow: 0 2px 0 #d97706, 0 4px 8px rgba(0,0,0,0.2); animation: floatUp 0.8s cubic-bezier(0.2, 1, 0.3, 1) forwards;
+        }
+        .combo-text {
+            color: #f43f5e; font-weight: 900; font-size: 2.5rem; font-style: italic;
+            text-shadow: 0 3px 0 #9f1239, 0 0 15px rgba(244,63,94,0.6);
+            z-index: 51; animation: comboPop 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+        }
+
+        @keyframes floatUp {
+            0% { transform: translate(calc(var(--startX) - 50%), var(--startY)) scale(0.5); opacity: 0; }
+            20% { transform: translate(calc(var(--startX) - 50%), calc(var(--startY) - 15px)) scale(1.1); opacity: 1; }
+            80% { transform: translate(calc(var(--startX) - 50%), calc(var(--startY) - 40px)) scale(1); opacity: 1; }
+            100% { transform: translate(calc(var(--startX) - 50%), calc(var(--startY) - 50px)) scale(1); opacity: 0; }
+        }
+        @keyframes comboPop {
+            0% { transform: translate(calc(var(--startX) - 50%), var(--startY)) scale(0) rotate(-10deg); opacity: 0; }
+            15% { transform: translate(calc(var(--startX) - 50%), calc(var(--startY) - 20px)) scale(1.2) rotate(5deg); opacity: 1; }
+            85% { transform: translate(calc(var(--startX) - 50%), calc(var(--startY) - 30px)) scale(1) rotate(0deg); opacity: 1; }
+            100% { transform: translate(calc(var(--startX) - 50%), calc(var(--startY) - 40px)) scale(0.8); opacity: 0; }
+        }
+
+        .hud-container {
+            position: absolute; top: 15px; left: 20px; right: 20px;
+            display: flex; justify-content: space-between; align-items: flex-start; z-index: 100; pointer-events: none;
+        }
+
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.85); backdrop-filter: blur(8px);
+            border: 2px solid rgba(255, 255, 255, 0.9); border-radius: 20px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.08); pointer-events: auto;
+        }
+
+        .status-group { display: flex; flex-direction: column; gap: 6px; }
+        .main-stats {
+            display: flex; align-items: center; gap: 12px; padding: 6px 16px; font-size: 1.1rem; font-weight: 800; color: #1e3a8a;
+        }
+
+        .level-badge {
+            background: var(--primary-blue); color: white; padding: 2px 8px; border-radius: 12px;
+            font-size: 0.85rem; text-transform: uppercase; letter-spacing: 1px;
+        }
+        .combo-badge {
+            background: linear-gradient(135deg, #f43f5e, #fb7185); color: white; padding: 2px 8px;
+            border-radius: 12px; font-size: 0.85rem; font-weight: 900;
+            display: none; animation: pulse 0.5s infinite alternate;
+        }
+        @keyframes pulse { 0% { transform: scale(1); } 100% { transform: scale(1.1); } }
+
+        .hearts-container { display: flex; gap: 2px; }
+        .heart { color: #ef4444; font-size: 1.1rem; filter: drop-shadow(0 1px 2px rgba(0,0,0,0.1)); transition: all 0.3s; }
+
+        .progress-bar-container { width: 100%; height: 6px; background: rgba(255,255,255,0.5); border-radius: 10px; overflow: hidden; margin-top: 2px; }
+        .progress-bar { height: 100%; background: #fbbf24; width: 0%; transition: width 0.3s ease; }
+
+        .backpack-btn {
+            display: flex; align-items: center; gap: 8px; padding: 8px 16px; cursor: pointer;
+            transition: transform 0.2s, background 0.2s; font-weight: 900; color: #0369a1;
+            background: rgba(224, 242, 254, 0.95); border-color: rgba(186, 230, 253, 1);
+        }
+        .backpack-btn:hover { transform: scale(1.05); background: rgba(224, 242, 254, 1); }
+
+        .screen-shake { animation: shake 0.3s cubic-bezier(.36,.07,.19,.97) both; }
+        @keyframes shake {
+            10%, 90% { transform: translate3d(-2px, 0, 0); } 20%, 80% { transform: translate3d(4px, 0, 0); }
+            30%, 50%, 70% { transform: translate3d(-6px, 0, 0); } 40%, 60% { transform: translate3d(6px, 0, 0); }
+        }
+        .hit-red { position: absolute; inset: 0; background: rgba(239, 68, 68, 0.4); z-index: 90; pointer-events: none; opacity: 0; transition: opacity 0.2s; }
+
+        /* --- 模態框與按鈕 --- */
+        .modal-overlay {
+            position: absolute; inset: 0; background: rgba(15, 23, 42, 0.6); backdrop-filter: blur(4px);
+            display: flex; justify-content: center; align-items: center; z-index: 1000;
+            opacity: 0; pointer-events: none; transition: opacity 0.3s ease;
+        }
+        .modal-overlay.active { opacity: 1; pointer-events: auto; }
+        .modal-card {
+            background: rgba(255, 255, 255, 0.98); padding: 30px 40px; border-radius: 24px; text-align: center;
+            box-shadow: 0 20px 40px -10px rgba(0, 0, 0, 0.3); max-width: 90%; width: 420px;
+            transform: translateY(20px) scale(0.95); transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            position: relative; max-height: 90vh; display: flex; flex-direction: column;
+        }
+        .modal-card.wide { width: 600px; }
+        .modal-overlay.active .modal-card { transform: translateY(0) scale(1); }
+
+        .close-btn { position: absolute; top: 15px; right: 20px; font-size: 1.5rem; color: #cbd5e1; cursor: pointer; background: none; border: none; transition: color 0.2s; }
+        .close-btn:hover { color: #64748b; }
+
+        .btn {
+            background: var(--primary-blue); color: white; padding: 14px 28px; border-radius: 16px;
+            font-size: 1.2rem; font-weight: 900; border: none; cursor: pointer;
+            box-shadow: 0 4px 0 var(--primary-shadow); transition: all 0.1s; width: 100%; flex-shrink: 0; letter-spacing: 1px;
+        }
+        /* 新增：勝利金按鈕 */
+        .btn-victory {
+            background: var(--victory-gold); box-shadow: 0 4px 0 var(--victory-shadow);
+        }
+        
+        .btn-outline { background: white; border: 2px solid #e5e5e5; color: #94a3b8; box-shadow: 0 4px 0 #e5e5e5; }
+        .btn:active { transform: translateY(4px); box-shadow: 0 0px 0 transparent; }
+
+        /* ==================== 
+           淺藍色主題地圖 (Journey Map) 
+           ==================== */
+        #map-view { position: absolute; inset: 0; display: flex; flex-direction: column; background: #ffffff; z-index: 10; }
+        .map-bg-pattern { position: absolute; inset: 0; opacity: 0.6; background-image: radial-gradient(var(--bg-dots) 2.5px, transparent 2.5px); background-size: 30px 30px; z-index: 0; pointer-events: none; }
+        .map-header { position: sticky; top: 0; background: var(--primary-blue); color: white; padding: 20px 20px 15px 20px; box-shadow: 0 4px 10px rgba(14, 165, 233, 0.2); display: flex; justify-content: space-between; align-items: center; z-index: 50; }
+        .map-title-group { display: flex; flex-direction: column; }
+        .map-title { font-size: 1.5rem; font-weight: 900; text-transform: uppercase; letter-spacing: 1px;}
+        .map-subtitle { font-size: 1rem; font-weight: 700; opacity: 0.9;}
+        .stars-badge { background: rgba(255,255,255,0.2); border-radius: 50px; padding: 6px 12px; font-weight: 900; font-size: 1.1rem; display: flex; align-items: center; gap: 6px; }
+
+        .map-scroll-area { flex-grow: 1; overflow-y: auto; overflow-x: hidden; position: relative; scroll-behavior: smooth; }
+        .path-container { position: relative; width: 100%; max-width: 500px; margin: 0 auto; height: 800px; padding: 80px 0; }
+        .svg-path { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 1; }
+
+        .node-color-0 { --node-color: #f97316; --node-shadow: #c2410c; --node-light: #ffedd5; } 
+        .node-color-1 { --node-color: #ec4899; --node-shadow: #be185d; --node-light: #fce7f3; } 
+        .node-color-2 { --node-color: #10b981; --node-shadow: #047857; --node-light: #d1fae5; } 
+        .node-color-3 { --node-color: #a855f7; --node-shadow: #7e22ce; --node-light: #f3e8ff; } 
+        .node-color-4 { --node-color: #eab308; --node-shadow: #a16207; --node-light: #fef3c7; } 
+        
+        .node-locked { --node-color: #e2e8f0; --node-shadow: #cbd5e1; --node-light: #f8fafc; color: #94a3b8;}
+
+        .node {
+            position: absolute; transform: translate(-50%, -50%); width: 80px; height: 80px; border-radius: 50%; 
+            background: var(--node-color); box-shadow: 0 8px 0 var(--node-shadow);
+            display: flex; justify-content: center; align-items: center; font-size: 2.5rem; color: white; font-weight: 900; z-index: 2; transition: all 0.3s; text-shadow: 0 2px 0 rgba(0,0,0,0.15); 
+        }
+        .node.locked { background: #f1f5f9; box-shadow: 0 8px 0 #e2e8f0; color: #cbd5e1; text-shadow: none; }
+        .node.current { transform: translate(-50%, -50%) scale(1.05); box-shadow: 0 8px 0 var(--node-shadow); }
+
+        .map-avatar {
+            position: absolute; width: 110px; height: 110px; transform: translate(-50%, -50%); z-index: 10;
+            transition: top 1s cubic-bezier(0.34, 1.56, 0.64, 1), left 1s cubic-bezier(0.34, 1.56, 0.64, 1);
+            filter: drop-shadow(0 8px 12px rgba(0,0,0,0.35)); 
+        }
+        .map-avatar img { width: 100%; height: 100%; object-fit: contain; }
+        .map-avatar.jumping { animation: arcJump 1s cubic-bezier(0.34, 1.56, 0.64, 1); }
+        @keyframes arcJump { 0% { transform: translate(-50%, -50%) scale(1); } 50% { transform: translate(-50%, -100%) scale(1.1); } 100% { transform: translate(-50%, -50%) scale(1); } }
+
+        /* 裝飾角色 */
+        .map-decoration { position: absolute; width: 100px; height: 100px; z-index: 1; transform: translate(-50%, -50%); }
+        .map-decoration img { width: 100%; height: 100%; object-fit: contain; filter: drop-shadow(0 6px 8px rgba(0,0,0,0.15)); }
+        .map-decoration:nth-child(1) img { animation: floatRock1 3.5s ease-in-out infinite; }
+        .map-decoration:nth-child(2) img { animation: floatRock2 4s ease-in-out infinite; }
+        .map-decoration:nth-child(3) img { animation: floatRock3 3.8s ease-in-out infinite; }
+
+        @keyframes floatRock1 { 0%, 100% { transform: translateY(-5px) rotate(-5deg); } 50% { transform: translateY(5px) rotate(3deg); } }
+        @keyframes floatRock2 { 0%, 100% { transform: translateY(4px) rotate(4deg); } 50% { transform: translateY(-4px) rotate(-4deg); } }
+        @keyframes floatRock3 { 0%, 100% { transform: translateY(-4px) rotate(-3deg); } 50% { transform: translateY(6px) rotate(5deg); } }
+
+        .bottom-nav {
+            position: sticky; bottom: 0; background: white; border-top: 2px solid #e5e5e5; display: flex; justify-content: space-around; align-items: center; padding: 15px 20px; z-index: 50; padding-bottom: max(15px, env(safe-area-inset-bottom));
+        }
+        .nav-item { display: flex; flex-direction: column; align-items: center; gap: 4px; color: #94a3b8; font-weight: 800; font-size: 0.85rem; cursor: pointer; transition: color 0.2s; }
+        .nav-item.active { color: var(--primary-blue); }
+        .nav-icon { font-size: 1.8rem; }
+
+        .floating-play-btn {
+            position: absolute; bottom: 100px; right: 20px; background: var(--primary-blue); color: white; width: 70px; height: 70px; border-radius: 50%; display: flex; justify-content: center; align-items: center; font-size: 2rem; box-shadow: 0 6px 0 var(--primary-shadow), 0 10px 20px rgba(14, 165, 233, 0.3); z-index: 40; cursor: pointer; transition: transform 0.1s, box-shadow 0.1s;
+        }
+        .floating-play-btn:active { transform: translateY(6px); box-shadow: 0 0px 0 transparent; }
+
+        .celebrate-msg {
+            position: fixed; top: 100px; left: 50%; transform: translate(-50%, -50%) scale(0); background: white; padding: 12px 24px; border-radius: 30px; font-weight: 900; font-size: 1.2rem; color: var(--primary-blue); box-shadow: 0 10px 20px rgba(0,0,0,0.15); border: 3px solid #bae6fd; z-index: 100; opacity: 0; transition: all 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+        .celebrate-msg.show { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+
+        /* 單字收集冊 */
+        .backpack-content { flex-grow: 1; overflow-y: auto; margin: 15px 0; padding-right: 10px; }
+        .section-title { text-align: left; font-size: 1.1rem; font-weight: 800; color: #475569; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; }
+        .word-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); gap: 10px; margin-bottom: 25px; }
+        .word-card {
+            background: white; border: 2px solid #e5e5e5; border-radius: 16px; padding: 10px; font-size: 1.2rem; font-weight: 800; color: #475569; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; transition: all 0.2s; box-shadow: 0 4px 0 #e5e5e5;
+        }
+        .word-card:active { transform: translateY(4px); box-shadow: 0 0px 0 transparent; }
+        .word-card.playing { border-color: var(--primary-blue); color: var(--primary-blue); box-shadow: 0 4px 0 var(--primary-shadow); }
+        .word-card.mistake { border-color: #f43f5e; color: #f43f5e; box-shadow: 0 4px 0 #e11d48; }
+        ::-webkit-scrollbar { width: 6px; } ::-webkit-scrollbar-track { background: transparent; } ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+    </style>
+</head>
+<body>
+
+<div id="app-container">
+    <!-- ==================== 1. 遊戲畫面 ==================== -->
+    <div id="game-view">
+        <div class="bg-clouds"></div>
+        <div id="hit-flash" class="hit-red"></div>
+
+        <div class="hud-container">
+            <div class="status-group">
+                <div class="glass-panel main-stats">
+                    <span id="level-indicator" class="level-badge">LV 1</span>
+                    <span>⭐ <span id="score-display">0</span> <span class="text-xs text-slate-400">/ 500</span></span>
+                    <span id="combo-display" class="combo-badge">Combo x2</span>
+                    <div class="hearts-container" id="hearts-display"></div>
+                </div>
+                <div class="progress-bar-container" id="progress-container">
+                    <div class="progress-bar" id="level-progress"></div>
+                </div>
+            </div>
+            <div class="glass-panel backpack-btn" id="open-backpack-btn">
+                <span>🎒</span>
+                <span id="global-collection-count">0</span>
+            </div>
+        </div>
+
+        <div id="player" class="player">
+            <div class="player-sprite">
+                <img src="https://res.cloudinary.com/docgkbrrg/image/upload/v1778846211/IMG_0864_swajz3.png" alt="雲仔" class="player-img">
+            </div>
+        </div>
+
+        <div id="levelup-modal" class="modal-overlay">
+            <div class="modal-card" style="width: 350px;">
+                <div class="text-6xl mb-2">🚀</div>
+                <h2 class="text-3xl font-black text-sky-500 mb-1">Level Up!</h2>
+                <p class="text-lg font-bold text-slate-700 mb-2">進入 Level <span id="new-level-display">2</span></p>
+                <p id="level-desc" class="text-sm text-slate-500 mb-6">更難的單字即將出現！</p>
+                <button id="continue-btn" class="btn">繼續衝刺</button>
+            </div>
+        </div>
+
+        <!-- 失敗/中途死亡視窗 -->
+        <div id="gameover-modal" class="modal-overlay">
+            <div class="modal-card">
+                <div class="text-5xl mb-2">💥</div>
+                <h2 class="text-3xl font-black text-slate-800 mb-1">訓練結束</h2>
+                <div class="bg-slate-50 rounded-2xl p-6 my-4 border-2 border-slate-100 flex flex-col items-center">
+                    <p class="text-sm text-slate-500 font-bold uppercase mb-1">獲得星星</p>
+                    <div id="final-score" class="text-5xl font-black text-slate-700">0</div>
+                </div>
+                <button id="go-to-map-btn" class="btn">結算進度 🗺️</button>
+            </div>
+        </div>
+        
+        <!-- 新增：完美通關視窗 -->
+        <div id="victory-modal" class="modal-overlay">
+            <div class="modal-card border-4 border-yellow-400">
+                <div class="text-6xl mb-2">🏆</div>
+                <h2 class="text-3xl font-black text-yellow-500 mb-1">完美通關！</h2>
+                <p class="text-md text-slate-500 font-bold mb-4">你已經收集滿 500 分啦！</p>
+                <div class="bg-yellow-50 rounded-2xl p-6 my-4 border-2 border-yellow-100 flex flex-col items-center">
+                    <p class="text-sm text-yellow-600 font-bold uppercase mb-1">總得分</p>
+                    <div id="victory-score" class="text-6xl font-black text-yellow-500">500</div>
+                </div>
+                <button id="victory-to-map-btn" class="btn btn-victory text-white">領取進度獎勵 🗺️</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== 2. 地圖 ==================== -->
+    <div id="map-view" style="display: none;">
+        <div class="map-bg-pattern"></div>
+        <div class="map-header">
+            <div class="map-title-group">
+                <div class="map-title">SECTION 1</div>
+                <div class="map-subtitle">Phonics: Vowels Mastery</div>
+            </div>
+            <div class="stars-badge"><span id="total-stars" class="text-yellow-400">0</span> ⭐</div>
+        </div>
+        <div class="celebrate-msg" id="celebrate-msg">🎉 表現出色！前進一格！</div>
+
+        <div class="map-scroll-area" id="map-scroll-area">
+            <div class="path-container">
+                <div class="map-decoration" style="top: 180px; left: 82%;">
+                    <img src="https://res.cloudinary.com/docgkbrrg/image/upload/v1778834668/IMG_0856_h5714l.png" alt="粉紅法師">
+                </div>
+                <div class="map-decoration" style="top: 380px; left: 18%;">
+                    <img src="https://res.cloudinary.com/docgkbrrg/image/upload/v1778834671/IMG_0858_tksp9q.png" alt="綠色學霸">
+                </div>
+                <div class="map-decoration" style="top: 580px; left: 82%;">
+                    <img src="https://res.cloudinary.com/docgkbrrg/image/upload/v1778834671/IMG_0857_du9ht5.png" alt="放大鏡怪">
+                </div>
+
+                <svg class="svg-path" viewBox="0 0 100 800" preserveAspectRatio="none">
+                    <path d="M 50 100 C 50 175, 25 175, 25 250 C 25 325, 75 325, 75 400 C 75 475, 50 475, 50 550 C 50 625, 50 625, 50 700" 
+                          stroke="#e2e8f0" stroke-width="8" fill="none" vector-effect="non-scaling-stroke" stroke-linecap="round"/>
+                    <path id="path-fill-line" d="M 50 100 C 50 175, 25 175, 25 250 C 25 325, 75 325, 75 400 C 75 475, 50 475, 50 550 C 50 625, 50 625, 50 700" 
+                          stroke="#ffc800" stroke-width="8" fill="none" vector-effect="non-scaling-stroke" stroke-linecap="round" 
+                          stroke-dasharray="2000" stroke-dashoffset="2000" style="transition: stroke-dashoffset 1s cubic-bezier(0.34, 1.56, 0.64, 1);"/>
+                </svg>
+
+                <div class="node node-color-0 unlocked current" id="node-0" style="top: 100px; left: 50%;">A</div>
+                <div class="node node-locked" id="node-1" style="top: 250px; left: 25%;">E</div>
+                <div class="node node-locked" id="node-2" style="top: 400px; left: 75%;">I</div>
+                <div class="node node-locked" id="node-3" style="top: 550px; left: 50%;">O</div>
+                <div class="node node-color-4 node-locked" id="node-4" style="top: 700px; left: 50%;">U</div>
+
+                <div class="map-avatar" id="map-avatar" style="top: 100px; left: 50%;">
+                    <img src="https://res.cloudinary.com/docgkbrrg/image/upload/v1778846211/IMG_0864_swajz3.png" alt="Avatar">
+                </div>
+            </div>
+        </div>
+
+        <div class="floating-play-btn" id="map-play-btn">🚀</div>
+
+        <div class="bottom-nav">
+            <div class="nav-item active"><div class="nav-icon">🗺️</div><span>學習路線</span></div>
+            <div class="nav-item" id="nav-backpack-btn"><div class="nav-icon">🎒</div><span>錯題本</span></div>
+        </div>
+    </div>
+
+    <!-- ==================== 3. 主畫面與背包 ==================== -->
+    <div id="start-view" class="modal-overlay active" style="background: rgba(15, 23, 42, 0.8);">
+        <div class="modal-card">
+            <h1 class="text-4xl font-black text-sky-500 mb-2">雲仔學院</h1>
+            <p class="text-md text-slate-500 mb-6 font-bold">Phonics: Long A vs Short A</p>
+            <div class="bg-sky-50 rounded-xl p-4 mb-6 border border-sky-100 text-left text-sm text-slate-600 font-bold leading-relaxed">
+                <p>👆 <span class="text-sky-600 font-black">按住並拖曳</span> 畫面控制雲仔</p>
+                <p>🎯 收集發出 "A" 長音的字 (如: Cake)</p>
+                <p>⚠️ 避開 "A" 短音的字 (如: Cat)</p>
+                <p>💡 遇到唔識嘅字？直接<span class="text-sky-600 font-black">點擊氣泡</span>聽發音！</p>
+            </div>
+            <div class="flex flex-col gap-3">
+                <button id="main-start-btn" class="btn">開始今日任務</button>
+                <button id="main-map-btn" class="btn btn-outline text-sky-500 border-sky-200 shadow-[0_4px_0_#bae6fd]">查看我的地圖</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="backpack-modal" class="modal-overlay">
+        <div class="modal-card wide border-4 border-sky-200">
+            <button class="close-btn" onclick="closeBackpack()">✖</button>
+            <div class="flex items-center justify-center gap-2 mb-2 flex-shrink-0">
+                <div class="text-3xl">🎒</div><h2 class="text-2xl font-black text-sky-800">學習紀錄冊</h2>
+            </div>
+            <div class="backpack-content">
+                <div id="mistakes-section" style="display: none;">
+                    <div class="section-title"><span class="text-rose-500">⚠️ 需溫習的單字 (曾撞錯)</span><span class="text-sm font-normal text-slate-400">點擊聽發音</span></div>
+                    <div id="bp-mistakes-collection" class="word-grid"></div>
+                    <hr class="border-slate-200 my-4 border-dashed">
+                </div>
+                <div class="section-title"><span class="text-sky-600">🌟 已掌握的單字 (<span id="bp-word-count">0</span>)</span></div>
+                <div id="bp-word-collection" class="word-grid"></div>
+                <div id="bp-empty-collection" class="text-center p-6 bg-slate-50 rounded-xl text-slate-400 font-bold mt-2">背包仲係空嘅，快啲去收集！</div>
+            </div>
+            <div class="mt-2 flex gap-2 flex-shrink-0" id="backpack-actions">
+                <button id="bp-return-btn" class="btn" onclick="closeBackpack()">關閉</button>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<script>
+    const views = { start: document.getElementById('start-view'), game: document.getElementById('game-view'), map: document.getElementById('map-view') };
+    const modals = { gameover: document.getElementById('gameover-modal'), victory: document.getElementById('victory-modal'), levelup: document.getElementById('levelup-modal'), backpack: document.getElementById('backpack-modal') };
+
+    const synth = window.speechSynthesis;
+    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    
+    function speakWord(word, cardElement = null) {
+        if (synth.speaking) synth.cancel();
+        const utterance = new SpeechSynthesisUtterance(word);
+        utterance.lang = 'en-US'; utterance.rate = 0.85; 
+        if (cardElement) {
+            cardElement.classList.add('reading');
+            utterance.onend = () => { cardElement.classList.remove('reading'); };
+        }
+        synth.speak(utterance);
+    }
+
+    function playOuch() {
+        if (synth.speaking) synth.cancel();
+        const utterance = new SpeechSynthesisUtterance("Ouch!");
+        utterance.lang = 'en-US'; utterance.rate = 1.3; utterance.pitch = 1.6; synth.speak(utterance);
+    }
+
+    function playDing() {
+        if(audioCtx.state === 'suspended') audioCtx.resume();
+        const osc = audioCtx.createOscillator(); const gainNode = audioCtx.createGain();
+        osc.type = 'sine'; osc.frequency.setValueAtTime(880, audioCtx.currentTime); 
+        osc.frequency.exponentialRampToValueAtTime(1760, audioCtx.currentTime + 0.1);
+        gainNode.gain.setValueAtTime(0.1, audioCtx.currentTime); gainNode.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.3);
+        osc.connect(gainNode); gainNode.connect(audioCtx.destination);
+        osc.start(); osc.stop(audioCtx.currentTime + 0.3);
+    }
+    
+    function playTada() {
+        if(audioCtx.state === 'suspended') audioCtx.resume();
+        [523.25, 659.25, 783.99, 1046.50].forEach((freq, i) => {
+            setTimeout(() => {
+                const osc = audioCtx.createOscillator(); const gainNode = audioCtx.createGain();
+                osc.type = 'triangle'; osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+                gainNode.gain.setValueAtTime(0.1, audioCtx.currentTime); gainNode.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.5);
+                osc.connect(gainNode); gainNode.connect(audioCtx.destination);
+                osc.start(); osc.stop(audioCtx.currentTime + 0.5);
+            }, i * 100);
+        });
+    }
+
+    // 勝利音效
+    function playVictory() {
+        if(audioCtx.state === 'suspended') audioCtx.resume();
+        [523.25, 659.25, 783.99, 1046.50, 1318.51, 1567.98].forEach((freq, i) => {
+            setTimeout(() => {
+                const osc = audioCtx.createOscillator(); const gainNode = audioCtx.createGain();
+                osc.type = 'sine'; osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+                gainNode.gain.setValueAtTime(0.1, audioCtx.currentTime); gainNode.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.6);
+                osc.connect(gainNode); gainNode.connect(audioCtx.destination);
+                osc.start(); osc.stop(audioCtx.currentTime + 0.6);
+            }, i * 120);
+        });
+        setTimeout(() => speakWord("You are amazing!"), 800);
+    }
+
+    function createParticles(x, y) {
+        const numParticles = 8;
+        for (let i = 0; i < numParticles; i++) {
+            const p = document.createElement('div'); p.className = 'particle';
+            p.style.backgroundColor = 'white'; p.style.width = Math.random() * 8 + 4 + 'px'; p.style.height = p.style.width;
+            
+            p.style.setProperty('--startX', `${x}px`);
+            p.style.setProperty('--startY', `${y}px`);
+            
+            const angle = (i / numParticles) * Math.PI * 2; const distance = Math.random() * 60 + 40;
+            p.style.setProperty('--tx', `${Math.cos(angle) * distance}px`); 
+            p.style.setProperty('--ty', `${Math.sin(angle) * distance}px`);
+            
+            views.game.appendChild(p);
+            setTimeout(() => p.remove(), 600);
+        }
+    }
+
+    const BUBBLE_COLORS = [
+        { bg: 'linear-gradient(135deg, #fecaca 0%, #f87171 100%)', border: '#fca5a5' },
+        { bg: 'linear-gradient(135deg, #fde047 0%, #facc15 100%)', border: '#fef08a' },
+        { bg: 'linear-gradient(135deg, #bbf7d0 0%, #4ade80 100%)', border: '#86efac' },
+        { bg: 'linear-gradient(135deg, #bfdbfe 0%, #60a5fa 100%)', border: '#93c5fd' },
+        { bg: 'linear-gradient(135deg, #e9d5ff 0%, #c084fc 100%)', border: '#d8b4fe' },
+        { bg: 'linear-gradient(135deg, #fed7aa 0%, #fb923c 100%)', border: '#fdba74' },
+        { bg: 'linear-gradient(135deg, #fbcfe8 0%, #f472b6 100%)', border: '#f9a8d4' }
+    ];
+    function getRandomColor() { return BUBBLE_COLORS[Math.floor(Math.random() * BUBBLE_COLORS.length)]; }
+
+    const TARGET_L1 = ['Cake', 'Rain', 'Play', 'Gate', 'Name', 'Day'];
+    const WRONG_L1 = ['Cat', 'Hat', 'Map', 'Dad', 'Fan', 'Bat'];
+    const TARGET_L2 = [...TARGET_L1, 'Snake', 'Train', 'Brain', 'Flame'];
+    const WRONG_L2 = [...WRONG_L1, 'Clap', 'Flag', 'Trap', 'Grab'];
+    const TARGET_L3 = [...TARGET_L2, 'Straight', 'Weight', 'Shadow'];
+    const WRONG_L3 = [...WRONG_L2, 'Apple', 'Rabbit', 'Planet'];
+
+    // 設定通關目標分數為 500 分
+    const MAX_SCORE = 500;
+    const LEVELS = {
+        1: { targetScore: 100, speed: 2.2, spawnRate: 2000, targetVocab: TARGET_L1, wrongVocab: WRONG_L1 },
+        2: { targetScore: 250, speed: 3.0, spawnRate: 1500, targetVocab: TARGET_L2, wrongVocab: WRONG_L2 },
+        3: { targetScore: MAX_SCORE, speed: 4.0, spawnRate: 1200, targetVocab: TARGET_L3, wrongVocab: WRONG_L3 }
+    };
+
+    let globalData = { inventory: new Set(), mistakes: new Set(), totalStars: 0, mapNode: 0 };
+    
+    const MAP_NODES = [
+        { top: 100, left: 50, colorClass: 'node-color-0' }, 
+        { top: 250, left: 25, colorClass: 'node-color-1' }, 
+        { top: 400, left: 75, colorClass: 'node-color-2' }, 
+        { top: 550, left: 50, colorClass: 'node-color-3' }, 
+        { top: 700, left: 50, colorClass: 'node-color-4' }  
+    ];
+
+    let gameState = {
+        isPlaying: false, isPaused: false, score: 0, hearts: 3, combo: 0,
+        bubbles: [], currentLevel: 1, playerY: window.innerHeight / 2, lastSpawnTime: 0, targetY: window.innerHeight / 2
+    };
+
+    let isDragging = false;
+
+    function switchView(viewName) {
+        views.start.style.display = viewName === 'start' ? 'flex' : 'none';
+        views.game.style.display = viewName === 'game' ? 'block' : 'none';
+        views.map.style.display = viewName === 'map' ? 'flex' : 'none';
+        if (viewName === 'start') views.start.classList.add('active');
+    }
+
+    function updateHearts() {
+        const hd = document.getElementById('hearts-display'); hd.innerHTML = '';
+        for(let i=0; i<3; i++) hd.innerHTML += `<span class="heart" style="opacity: ${i < gameState.hearts ? '1' : '0.2'}">❤️</span>`;
+    }
+    
+    function updateLevelProgress() {
+        document.getElementById('level-indicator').innerText = `LV ${gameState.currentLevel}`;
+        const pc = document.getElementById('progress-container');
+        
+        // 進度條顯示當前關卡的進度
+        const prevTarget = gameState.currentLevel === 1 ? 0 : LEVELS[gameState.currentLevel - 1].targetScore;
+        const target = LEVELS[gameState.currentLevel].targetScore;
+        const currentObj = Math.max(0, gameState.score - prevTarget);
+        document.getElementById('level-progress').style.width = `${Math.min(100, (currentObj / (target - prevTarget)) * 100)}%`;
+    }
+
+    function updateComboUI() {
+        const cd = document.getElementById('combo-display');
+        if (gameState.combo >= 2) { cd.style.display = 'inline-block'; cd.innerText = `Combo x${gameState.combo}`; } 
+        else { cd.style.display = 'none'; }
+    }
+
+    function updateBackpackUI() {
+        document.getElementById('global-collection-count').innerText = globalData.inventory.size;
+        document.getElementById('bp-word-count').innerText = globalData.inventory.size;
+        
+        const successGrid = document.getElementById('bp-word-collection');
+        const emptyMsg = document.getElementById('bp-empty-collection');
+        successGrid.innerHTML = '';
+        
+        if (globalData.inventory.size === 0) {
+            successGrid.classList.add('hidden'); emptyMsg.classList.remove('hidden');
+        } else {
+            successGrid.classList.remove('hidden'); emptyMsg.classList.add('hidden');
+            Array.from(globalData.inventory).sort().forEach(word => {
+                const card = document.createElement('button'); card.className = 'word-card';
+                card.innerHTML = `<span>🔊</span> ${word}`; card.onclick = () => speakWord(word, card);
+                successGrid.appendChild(card);
+            });
+        }
+        
+        const mistakesSection = document.getElementById('mistakes-section');
+        const mistakesGrid = document.getElementById('bp-mistakes-collection');
+        mistakesGrid.innerHTML = '';
+        
+        if (globalData.mistakes.size > 0) {
+            mistakesSection.style.display = 'block';
+            Array.from(globalData.mistakes).sort().forEach(word => {
+                const card = document.createElement('button'); card.className = 'word-card mistake';
+                card.innerHTML = `<span>🔊</span> ${word}`; card.onclick = () => speakWord(word, card);
+                mistakesGrid.appendChild(card);
+            });
+        } else { mistakesSection.style.display = 'none'; }
+    }
+
+    function renderMap(shouldAnimateProgress = false) {
+        document.getElementById('total-stars').innerText = globalData.totalStars;
+        
+        for(let i=0; i<5; i++) {
+            const node = document.getElementById(`node-${i}`);
+            node.classList.remove('unlocked', 'current', 'node-locked', 'node-color-0', 'node-color-1', 'node-color-2', 'node-color-3', 'node-color-4');
+            
+            if (i <= globalData.mapNode) {
+                node.classList.add('unlocked', MAP_NODES[i].colorClass);
+            } else {
+                node.classList.add('node-locked');
+            }
+            
+            if (i === globalData.mapNode) {
+                node.classList.add('current');
+            }
+        }
+        
+        const avatar = document.getElementById('map-avatar');
+        const pathLine = document.getElementById('path-fill-line');
+        const targetNode = MAP_NODES[globalData.mapNode];
+        
+        const totalPathLength = 2000;
+        const progressSegment = totalPathLength / 4;
+        const targetDashOffset = totalPathLength - (globalData.mapNode * progressSegment);
+        
+        if (shouldAnimateProgress) {
+            const oldNode = MAP_NODES[globalData.mapNode - 1];
+            avatar.style.top = `${oldNode.top}px`;
+            avatar.style.left = `${oldNode.left}%`;
+            scrollToMapPosition(oldNode.top);
+            
+            setTimeout(() => {
+                avatar.classList.add('jumping');
+                avatar.style.top = `${targetNode.top}px`;
+                avatar.style.left = `${targetNode.left}%`;
+                pathLine.style.strokeDashoffset = targetDashOffset;
+                scrollToMapPosition(targetNode.top);
+                
+                setTimeout(() => {
+                    avatar.classList.remove('jumping');
+                    playTada();
+                    const msg = document.getElementById('celebrate-msg');
+                    msg.classList.add('show');
+                    setTimeout(() => msg.classList.remove('show'), 3000);
+                }, 1000); 
+            }, 800);
+        } else {
+            avatar.style.top = `${targetNode.top}px`;
+            avatar.style.left = `${targetNode.left}%`;
+            pathLine.style.strokeDashoffset = targetDashOffset;
+            setTimeout(() => scrollToMapPosition(targetNode.top), 100);
+        }
+    }
+
+    function scrollToMapPosition(targetTop) {
+        const scrollArea = document.getElementById('map-scroll-area');
+        const scrollPos = targetTop - (scrollArea.clientHeight / 2);
+        scrollArea.scrollTo({ top: Math.max(0, scrollPos), behavior: 'smooth' });
+    }
+
+    function evaluateMapProgress(sessionScore) {
+        // 設定進度跳格條件 (不再是每次 >= 100，而是按總分跳格，或者每次勝利前進一格)
+        // 為了展示效果，這裡設定：只要分數大過 100，地圖就前進一格，滿500分可以行到最後
+        if (sessionScore >= 100 && globalData.mapNode < 4) {
+            globalData.mapNode++;
+            switchView('map');
+            renderMap(true); 
+        } else {
+            switchView('map');
+            renderMap(false); 
+        }
+    }
+
+    function handleInput(clientY) {
+        if (!gameState.isPlaying || gameState.isPaused) return;
+        gameState.targetY = Math.max(70, Math.min(clientY, window.innerHeight - 80)); 
+    }
+
+    views.game.addEventListener('mousedown', (e) => {
+        if (e.target.closest('.bubble')) return;
+        isDragging = true;
+        handleInput(e.clientY);
+    });
+    window.addEventListener('mouseup', () => { isDragging = false; });
+    views.game.addEventListener('mousemove', (e) => {
+        if (isDragging) handleInput(e.clientY);
+    });
+
+    views.game.addEventListener('touchstart', (e) => {
+        if (e.target.closest('.bubble')) return;
+        isDragging = true;
+        handleInput(e.touches[0].clientY);
+    }, {passive: true});
+    window.addEventListener('touchend', () => { isDragging = false; });
+    views.game.addEventListener('touchmove', (e) => {
+        if (!isDragging) return;
+        handleInput(e.touches[0].clientY);
+        e.preventDefault(); 
+    }, { passive: false });
+
+    document.getElementById('main-start-btn').addEventListener('click', () => {
+        switchView('game'); startGame();
+    });
+    
+    document.getElementById('main-map-btn').addEventListener('click', () => {
+        switchView('map'); renderMap();
+    });
+    
+    document.getElementById('map-play-btn').addEventListener('click', () => {
+        switchView('game'); startGame();
+    });
+
+    // 處理各種結束狀態的按鈕
+    document.getElementById('go-to-map-btn').addEventListener('click', () => {
+        modals.gameover.classList.remove('active');
+        evaluateMapProgress(gameState.score);
+    });
+    
+    document.getElementById('victory-to-map-btn').addEventListener('click', () => {
+        modals.victory.classList.remove('active');
+        // 完美通關直接推至最後一格 (如果未滿)
+        if (globalData.mapNode < 4) globalData.mapNode = 4;
+        switchView('map');
+        renderMap(true);
+    });
+    
+    function openBackpack() {
+        if(gameState.isPlaying) gameState.isPaused = true;
+        updateBackpackUI();
+        modals.backpack.classList.add('active');
+    }
+
+    function closeBackpack() {
+        modals.backpack.classList.remove('active');
+        if (gameState.isPlaying && !modals.levelup.classList.contains('active') && !modals.victory.classList.contains('active')) {
+            gameState.isPaused = false;
+            gameState.lastSpawnTime = performance.now();
+            requestAnimationFrame(gameLoop);
+        }
+    }
+    
+    document.getElementById('open-backpack-btn').addEventListener('click', openBackpack);
+    document.getElementById('nav-backpack-btn').addEventListener('click', openBackpack);
+
+    function startGame() {
+        if(audioCtx.state === 'suspended') audioCtx.resume();
+        speakWord(''); 
+        gameState.isPlaying = true; gameState.isPaused = false;
+        gameState.score = 0; gameState.hearts = 3; gameState.combo = 0; gameState.currentLevel = 1;
+        gameState.bubbles.forEach(b => b.el.remove()); gameState.bubbles = [];
+        gameState.lastSpawnTime = performance.now();
+        isDragging = false; 
+        
+        gameState.targetY = window.innerHeight / 2;
+        gameState.playerY = gameState.targetY;
+        document.getElementById('player').style.transform = `translateY(${gameState.playerY - 60}px)`;
+        
+        document.getElementById('score-display').innerText = '0';
+        updateComboUI(); updateHearts(); updateLevelProgress(); updateBackpackUI();
+        
+        modals.gameover.classList.remove('active');
+        modals.victory.classList.remove('active');
+        modals.backpack.classList.remove('active');
+        views.start.classList.remove('active');
+        
+        requestAnimationFrame(gameLoop);
+    }
+
+    function endGame(isVictory = false) {
+        gameState.isPlaying = false; gameState.isPaused = true; isDragging = false;
+        globalData.totalStars += gameState.score; 
+        
+        if (isVictory) {
+            playVictory();
+            document.getElementById('victory-score').innerText = gameState.score;
+            setTimeout(() => modals.victory.classList.add('active'), 500);
+        } else {
+            document.getElementById('final-score').innerText = gameState.score;
+            setTimeout(() => modals.gameover.classList.add('active'), 500);
+        }
+    }
+
+    function checkLevelProgress() {
+        // 檢查是否達到 500 分爆機
+        if (gameState.score >= MAX_SCORE) {
+            gameState.score = MAX_SCORE; // 鎖定最高分
+            document.getElementById('score-display').innerText = gameState.score;
+            updateLevelProgress();
+            endGame(true); // 觸發完美通關
+            return;
+        }
+
+        // 檢查是否升級
+        if (gameState.currentLevel < 3 && gameState.score >= LEVELS[gameState.currentLevel].targetScore) {
+            gameState.isPaused = true; gameState.currentLevel++; isDragging = false;
+            document.getElementById('new-level-display').innerText = gameState.currentLevel;
+            modals.levelup.classList.add('active');
+            speakWord('Level Up!');
+        } else { 
+            updateLevelProgress(); 
+        }
+    }
+
+    document.getElementById('continue-btn').addEventListener('click', () => {
+        modals.levelup.classList.remove('active');
+        updateLevelProgress(); gameState.isPaused = false;
+        gameState.lastSpawnTime = performance.now();
+        requestAnimationFrame(gameLoop);
+    });
+
+    function spawnBubble(currentTime) {
+        const levelConfig = LEVELS[gameState.currentLevel];
+        if (currentTime - gameState.lastSpawnTime < levelConfig.spawnRate) return;
+        gameState.lastSpawnTime = currentTime;
+
+        const isTarget = Math.random() < 0.5; 
+        const list = isTarget ? levelConfig.targetVocab : levelConfig.wrongVocab;
+        const word = list[Math.floor(Math.random() * list.length)];
+        const colorConfig = getRandomColor();
+
+        const bubbleEl = document.createElement('div');
+        bubbleEl.className = `bubble`; bubbleEl.innerText = word;
+        bubbleEl.style.background = colorConfig.bg; bubbleEl.style.borderColor = colorConfig.border;
+        
+        const startY = Math.random() * (window.innerHeight - 180) + 90;
+        const startX = window.innerWidth + 50;
+        
+        bubbleEl.style.left = `${startX}px`;
+        bubbleEl.style.top = `${startY}px`;
+        
+        const playHintAudio = (e) => {
+            e.stopPropagation(); 
+            speakWord(word, bubbleEl);
+        };
+        bubbleEl.addEventListener('mousedown', playHintAudio);
+        bubbleEl.addEventListener('touchstart', playHintAudio, {passive: true});
+
+        views.game.appendChild(bubbleEl);
+
+        const estimatedWidth = word.length * 15 + 40; 
+        gameState.bubbles.push({
+            el: bubbleEl, x: startX, y: startY,
+            width: estimatedWidth, height: 45, isTarget: isTarget, word: word,
+            speed: levelConfig.speed
+        });
+    }
+
+    function createFloatingText(x, y, text, isCombo = false) {
+        const el = document.createElement('div');
+        el.className = isCombo ? 'combo-text' : 'float-text'; el.innerText = text;
+        el.style.setProperty('--startX', `${x}px`);
+        el.style.setProperty('--startY', `${y}px`);
+        views.game.appendChild(el);
+        setTimeout(() => el.remove(), 800);
+    }
+
+    let playerXBase = window.innerWidth * 0.08;
+    window.addEventListener('resize', () => { playerXBase = window.innerWidth * 0.08; });
+
+    function gameLoop(currentTime) {
+        if (!gameState.isPlaying || gameState.isPaused) return;
+
+        if (gameState.playerY !== gameState.targetY) {
+            gameState.playerY += (gameState.targetY - gameState.playerY) * 0.3;
+            if (Math.abs(gameState.playerY - gameState.targetY) < 1) gameState.playerY = gameState.targetY;
+            document.getElementById('player').style.transform = `translateY(${gameState.playerY - 60}px)`;
+        }
+
+        spawnBubble(currentTime);
+
+        const pTop = gameState.playerY - 60; 
+        
+        const hitBox = { 
+            left: playerXBase + 20, 
+            right: playerXBase + 120 - 20, 
+            top: pTop + 30,           
+            bottom: pTop + 120 - 15   
+        };
+
+        for (let i = gameState.bubbles.length - 1; i >= 0; i--) {
+            let bubble = gameState.bubbles[i];
+            bubble.x -= bubble.speed; 
+            
+            bubble.el.style.left = `${bubble.x}px`;
+
+            const bLeft = bubble.x + 10;
+            const bRight = bubble.x + bubble.width - 10;
+            const bTop = bubble.y + 10;
+            const bBottom = bubble.y + bubble.height - 10;
+
+            const isColliding = !(
+                hitBox.right < bLeft || 
+                hitBox.left > bRight || 
+                hitBox.bottom < bTop || 
+                hitBox.top > bBottom
+            );
+
+            if (isColliding) {
+                if (bubble.isTarget) {
+                    playDing(); gameState.combo++; updateComboUI();
+                    
+                    const pointsEarned = 10 + (gameState.combo > 1 ? gameState.combo * 2 : 0);
+                    gameState.score += pointsEarned; document.getElementById('score-display').innerText = gameState.score;
+                    
+                    if (!globalData.inventory.has(bubble.word)) { globalData.inventory.add(bubble.word); }
+                    
+                    speakWord(bubble.word); createParticles(bubble.x + bubble.width/2, bubble.y + bubble.height/2);
+                    
+                    if (gameState.combo >= 3) { createFloatingText(bubble.x, bubble.y, `Combo x${gameState.combo}!`, true); } 
+                    else { createFloatingText(bubble.x, bubble.y, `+${pointsEarned}`); }
+                    
+                    bubble.el.classList.add('popped');
+                    setTimeout(() => bubble.el.remove(), 300);
+                    
+                    // 統一交由 checkLevelProgress 處理升級和 500 分爆機
+                    checkLevelProgress();
+                    
+                } else {
+                    gameState.hearts--; gameState.combo = 0; updateComboUI(); updateHearts();
+                    if (!globalData.mistakes.has(bubble.word)) { globalData.mistakes.add(bubble.word); }
+                    
+                    playOuch(); 
+                    views.game.classList.add('screen-shake');
+                    document.getElementById('hit-flash').style.opacity = '1';
+                    setTimeout(() => {
+                        views.game.classList.remove('screen-shake');
+                        document.getElementById('hit-flash').style.opacity = '0';
+                    }, 300);
+                    bubble.el.remove();
+                    // 扣到 0 血觸發普通失敗
+                    if (gameState.hearts <= 0) endGame(false);
+                }
+                gameState.bubbles.splice(i, 1); continue;
+            }
+
+            if (bubble.x < -150) {
+                if (bubble.isTarget) { gameState.combo = 0; updateComboUI(); }
+                bubble.el.remove(); gameState.bubbles.splice(i, 1);
+            }
+        }
+        
+        if(gameState.isPlaying && !gameState.isPaused) requestAnimationFrame(gameLoop);
+    }
+
+    switchView('start');
+</script>
+
+</body>
+</html>
